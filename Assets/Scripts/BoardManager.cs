@@ -7,6 +7,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class BoardManager : MonoBehaviour
 {
@@ -18,6 +20,12 @@ public class BoardManager : MonoBehaviour
 
     private int selectionX = -1;
     private int selectionY = -1;
+    private int count = 1;
+
+    public float time = 0f;
+    public Text result_Elapased_Time;
+    public Text result_Turn_Count;
+    public Text In_Game_Turn_Count;
 
     public int leftWallsW = 9;
     public int leftWallsB = 9;
@@ -42,13 +50,18 @@ public class BoardManager : MonoBehaviour
     private Pawn selectedPawn;
 
     public bool isWhiteTurn = true;
+    private bool cubeTemp = false;
+    public bool isSelected = false;
+    public bool wallDirection = true;
+    public bool isPaused = false;
 
+    public GameObject BlackesTurn,WhitesTurn;
+    public GameObject Winner_Black, Winner_White;
+    public GameObject EndCanvas;
     private Material previousMat;
     public Material selectedMat;
 
     public Camera camA, camB;
-
-    WallDirection wD = new WallDirection();
 
     void Start()
     {
@@ -71,45 +84,60 @@ public class BoardManager : MonoBehaviour
 
     void Update()
     {
-        UpdateSelection();
-        SetWall();
-
-        if (Input.GetMouseButtonDown(0))
+        if (!isPaused)
         {
-            if (selectionX >= 0 && selectionY >= 0)
+            time += Time.deltaTime;
+            UpdateSelection();
+            if (!isSelected)
+                SetWall();
+
+            if (Input.GetMouseButtonDown(0))
             {
-                if (selectedPawn == null)
+                if (selectionX >= 0 && selectionY >= 0)
                 {
-                    // Select the pawn
-                    SelectPawn(selectionX, selectionY);
-                }
-                else
-                {
-                    // Move the pawn
-                    MovePawn(selectionX, selectionY);
+                    if (selectedPawn == null)
+                    {
+                        // Select the pawn
+                        SelectPawn(selectionX, selectionY);
+                    }
+                    else
+                    {
+                        // Move the pawn
+                        MovePawn(selectionX, selectionY);
+                    }
                 }
             }
         }
 
-        Debug.Log("업데이트 " + wD.wallDirection);
+        Debug.Log("업데이트 " + wallDirection);
 
-        Debug.DrawRay(GameObject.FindWithTag("White").transform.position, Vector3.forward * 1.25f);
-        Debug.DrawRay(GameObject.FindWithTag("White").transform.position, Vector3.back * 1.25f);
-        Debug.DrawRay(GameObject.FindWithTag("White").transform.position, Vector3.right * 1.25f);
-        Debug.DrawRay(GameObject.FindWithTag("White").transform.position, Vector3.left * 1.25f);
+        Debug.DrawRay(GameObject.FindWithTag("White").transform.position, Vector3.forward * 1.25f, Color.blue);
+        Debug.DrawRay(GameObject.FindWithTag("White").transform.position, Vector3.back * 1.25f, Color.red);
+        Debug.DrawRay(GameObject.FindWithTag("White").transform.position, Vector3.right * 1.25f, Color.yellow);
+        Debug.DrawRay(GameObject.FindWithTag("White").transform.position, Vector3.left * 1.25f, Color.green);
 
-        Debug.DrawRay(GameObject.FindWithTag("Black").transform.position, Vector3.forward * 1.25f);
-        Debug.DrawRay(GameObject.FindWithTag("Black").transform.position, Vector3.back * 1.25f);
-        Debug.DrawRay(GameObject.FindWithTag("Black").transform.position, Vector3.right * 1.25f);
-        Debug.DrawRay(GameObject.FindWithTag("Black").transform.position, Vector3.left * 1.25f);
+        Debug.DrawRay(GameObject.FindWithTag("Black").transform.position, Vector3.forward * 1.25f, Color.blue);
+        Debug.DrawRay(GameObject.FindWithTag("Black").transform.position, Vector3.back * 1.25f, Color.red);
+        Debug.DrawRay(GameObject.FindWithTag("Black").transform.position, Vector3.right * 1.25f, Color.yellow);
+        Debug.DrawRay(GameObject.FindWithTag("Black").transform.position, Vector3.left * 1.25f, Color.green);
 
         if (Input.GetKey("escape"))
-            Application.Quit();
+        {
+            if (isPaused)
+                Time.timeScale = 1;
+
+            SceneManager.LoadScene("MenuScene");
+        }
+            
     }
 
     private void SelectPawn(int x, int y)
     {
-        if (Pawns[x, y] == null) return;
+        if (Pawns[x, y] == null)
+        {
+            isSelected = false;
+            return;
+        }
 
         if (Pawns[x, y].isWhite != isWhiteTurn) return;
 
@@ -137,6 +165,7 @@ public class BoardManager : MonoBehaviour
         selectedMat.mainTexture = previousMat.mainTexture;
         selectedPawn.GetComponent<MeshRenderer>().material = selectedMat;
         BoardHighlights.Instance.HighLightAllowedMoves(allowedMoves);
+        isSelected = true;
     }
 
     private void MovePawn(int x, int y)
@@ -167,8 +196,16 @@ public class BoardManager : MonoBehaviour
             selectedPawn.transform.position = GetTileCenter(x, y);
             selectedPawn.SetPosition(x, y);
             Pawns[x, y] = selectedPawn;
+            AudioManager.Instance.PawnMoveEffect();
+
+            if (isWhiteTurn)
+                White_Turn_End();
+            else
+                Black_Turn_End();
+
             isWhiteTurn = !isWhiteTurn;
-            ChangeCamView();
+            GameObject.Find("InGameCanvas").GetComponent<FadeScript>().Fade();
+            isSelected = false;
 
         }
 
@@ -191,6 +228,7 @@ public class BoardManager : MonoBehaviour
         {
             selectionX = -1;
             selectionY = -1;
+            isSelected = false;
         }
     }
 
@@ -215,8 +253,11 @@ public class BoardManager : MonoBehaviour
         activePawn.Add(go);
     }
 
-    private void ChangeCamView()
+    public void ChangeCamView()
     {
+
+        //GameObject.Find("InGameCanvas").GetComponent<FadeScript>().Fade();
+
         if (isWhiteTurn)
         {
             camA.gameObject.SetActive(true);
@@ -240,18 +281,23 @@ public class BoardManager : MonoBehaviour
         cubePos.y = 0;
         cubePos.z = 1.0f;
 
-        for (int i = 0; i < 8; i++)
+        if (!cubeTemp)
         {
-            for (int j = 0; j < 8; j++)
+            for (int i = 0; i < 8; i++)
             {
-                go = Instantiate(wallPrefab[1], cubePos, cubeWallOrientationH) as GameObject;
-                go.transform.SetParent(transform);
-                cubePos.x += 1.0f;
-                cubeList.Add(go);
+                for (int j = 0; j < 8; j++)
+                {
+                    go = Instantiate(wallPrefab[1], cubePos, cubeWallOrientationH) as GameObject;
+                    go.transform.SetParent(transform);
+                    cubePos.x += 1.0f;
+                    cubeList.Add(go);
+                }
+
+                cubePos.x = 1.0f;
+                cubePos.z += 1.0f;
             }
 
-            cubePos.x = 1.0f;
-            cubePos.z += 1.0f;
+            cubeTemp = !cubeTemp;
         }
 
         if (isWhite)
@@ -286,8 +332,7 @@ public class BoardManager : MonoBehaviour
 
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
-
-        GameObject go;
+        RaycastHit hitTemp;
 
         Debug.DrawRay(ray.origin, ray.direction * 50.0f);
         if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hit, 50.0f) && hit.collider.name.Equals("WallCube(Clone)"))
@@ -301,48 +346,47 @@ public class BoardManager : MonoBehaviour
                     {
                         if (isWhiteTurn && leftWallsW >= 0)
                         {
-                            if (wD.wallDirection)
+                            Debug.Log(Physics.Raycast(hit.transform.position, Vector3.left, out hitTemp, 1.0f));
+                            Debug.Log(hit.collider.name);
+                            Debug.Log(Physics.Raycast(hit.transform.position, Vector3.right, out hitTemp, 1.0f));
+                            Debug.Log(hit.collider.name);
+
+                            if (wallDirection
+                                && (!Physics.Raycast(hit.transform.position, Vector3.left, 0.4f)
+                                && !Physics.Raycast(hit.transform.position, Vector3.right, 0.4f)))
                             {
-                                go = Instantiate(wallPrefab[0], hit.transform.position, cubeWallOrientationH);
-                                activeWall.Add(go);
-                            }
-                            else
-                            {
-                                go = Instantiate(wallPrefab[0], hit.transform.position, cubeWallOrientationV);
-                                activeWall.Add(go);
+                                SetWallH(hit);
+                                AfterSetWall();
                             }
 
-                            Destroy(holdingWallOne[leftWallsW]);
-                            holdingWallOne.RemoveAt(holdingWallOne.Count - 1);
-                            leftWallsW--;
-                            isWhiteTurn = !isWhiteTurn;
-                            wallCube.isOpen = !wallCube.isOpen;
-                            wD.wallDirection = true;
-                            Debug.Log("White");
+                            else if (!wallDirection
+                                && (!Physics.Raycast(hit.transform.position, Vector3.forward, 0.4f)
+                                && !Physics.Raycast(hit.transform.position, Vector3.back, 0.4f)))
+                            {
+                                SetWallV(hit);
+                                AfterSetWall();
+                            }
                         }
 
                         else if (!isWhiteTurn && leftWallsB >= 0)
                         {
-                            if (wD.wallDirection)
+                            if (wallDirection
+                                && (!Physics.Raycast(hit.transform.position, Vector3.left, 0.4f)
+                                && !Physics.Raycast(hit.transform.position, Vector3.right, 0.4f)))
                             {
-                                go = Instantiate(wallPrefab[0], hit.transform.position, cubeWallOrientationH);
-                                activeWall.Add(go);
-                            }
-                            else
-                            {
-                                go = Instantiate(wallPrefab[0], hit.transform.position, cubeWallOrientationV);
-                                activeWall.Add(go);
+                                SetWallH(hit);
+                                AfterSetWall();
                             }
 
-                            Destroy(holdingWallTwo[leftWallsB]);
-                            holdingWallTwo.RemoveAt(holdingWallTwo.Count - 1);
-                            leftWallsB--;
-                            isWhiteTurn = !isWhiteTurn;
-                            wallCube.isOpen = !wallCube.isOpen;
-                            wD.wallDirection = true;
-                            Debug.Log("Black");
+                            else if (!wallDirection
+                                && (!Physics.Raycast(hit.transform.position, Vector3.forward, 0.4f)
+                                && !Physics.Raycast(hit.transform.position, Vector3.back, 0.4f)))
+                            {
+                                SetWallV(hit);
+                                AfterSetWall();
+                            }
+
                         }
-                        ChangeCamView();
                     }
                 }
 
@@ -350,12 +394,74 @@ public class BoardManager : MonoBehaviour
                 {
                     if (hit.collider.tag == "WallCube")
                     {
-                        wD.wallDirection = !wD.wallDirection;
-                        Debug.Log(wD.wallDirection);
+                        wallDirection = !wallDirection;
+                        Debug.Log(wallDirection);
                     }
                 }
             }
         }
+    }
+
+    private void SetWallH(RaycastHit hit)
+    {
+        GameObject temp;
+
+        temp = Instantiate(wallPrefab[0], hit.transform.position, cubeWallOrientationH);
+        activeWall.Add(temp);
+    }
+
+    private void SetWallV(RaycastHit hit)
+    {
+        GameObject temp;
+
+        temp = Instantiate(wallPrefab[0], hit.transform.position, cubeWallOrientationV);
+        activeWall.Add(temp);
+    }
+
+    private void AfterSetWall()
+    {
+        if (isWhiteTurn)
+        {
+            Destroy(holdingWallOne[leftWallsW]);
+            holdingWallOne.RemoveAt(holdingWallOne.Count - 1);
+            leftWallsW--;
+            isWhiteTurn = !isWhiteTurn;
+            wallCube.isOpen = !wallCube.isOpen;
+            wallDirection = true;
+            Debug.Log("White");
+            GameObject.Find("InGameCanvas").GetComponent<FadeScript>().Fade();
+            White_Turn_End();
+        }
+
+        else
+        {
+            Destroy(holdingWallTwo[leftWallsB]);
+            holdingWallTwo.RemoveAt(holdingWallTwo.Count - 1);
+            leftWallsB--;
+            isWhiteTurn = !isWhiteTurn;
+            wallCube.isOpen = !wallCube.isOpen;
+            wallDirection = true;
+            Debug.Log("Black");
+            GameObject.Find("InGameCanvas").GetComponent<FadeScript>().Fade();
+            Black_Turn_End();
+        }
+        AudioManager.Instance.SpawnWallEffect();
+    }
+
+    private void White_Turn_End()
+    {
+        count++;
+        In_Game_Turn_Count.text = count.ToString();
+        WhitesTurn.SetActive(false);
+        BlackesTurn.SetActive(true);
+    }
+
+    private void Black_Turn_End()
+    {
+        count++;
+        In_Game_Turn_Count.text = count.ToString();
+        WhitesTurn.SetActive(true);
+        BlackesTurn.SetActive(false);
     }
 
     private Vector3 GetTileCenter(int x, int y)
@@ -393,15 +499,25 @@ public class BoardManager : MonoBehaviour
         /////// Black ///////
         SpawnPawn(1, 4, 8, false);
         SpawnWall(positionBlack, false);
-
     }
 
     private void EndGame()
     {
+        result_Elapased_Time.text = Mathf.Round(time)+" (s)";
+        result_Turn_Count.text = count + " turns";
+
+        AudioManager.Instance.EndGameEffect();
         if (isWhiteTurn)
-            Debug.Log("White wins");
+        {
+            Winner_White.SetActive(true);
+            Winner_Black.SetActive(false);
+        }
         else
-            Debug.Log("Black wins");
+        {
+            Winner_White.SetActive(false);
+            Winner_Black.SetActive(true);
+        }
+            
 
         // 게임이 종료될 때 오브젝트를 삭제 후 원위치 시킬지 결정 필요
         foreach (GameObject go in activePawn)
@@ -413,10 +529,6 @@ public class BoardManager : MonoBehaviour
         isWhiteTurn = true;
         BoardHighlights.Instance.HideHighlights();
         SpawnAllPawns();
+        EndCanvas.SetActive(true);
     }
-}
-
-class WallDirection
-{
-    public bool wallDirection = true;
 }

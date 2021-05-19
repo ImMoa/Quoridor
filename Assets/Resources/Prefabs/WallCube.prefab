@@ -106,11 +106,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07280e10908a148408d6d0cdee1313e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pawnPrefabs: []
-  wallPrefab: []
-  cubeWallOrientationH: {x: 0.70710677, y: 0, z: 0, w: 0.70710677}
-  isWhiteTurn: 1
-  selectedMat: {fileID: 0}
   isOpen: 0
   translucentWall: {fileID: 6304748200630106084, guid: 9fe595633dded1148b4f2f95b58f9624,
     type: 3}

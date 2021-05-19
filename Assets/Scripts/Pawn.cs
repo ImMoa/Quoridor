@@ -23,6 +23,7 @@ public abstract class Pawn : MonoBehaviour
 
     public bool Move(int x, int y, ref bool[,] r)
     {
+        
         if (x >= 0 && x < 9 && y >= 0 && y < 9)
         {
             Pawn p = BoardManager.Instance.Pawns[x, y];
@@ -35,6 +36,7 @@ public abstract class Pawn : MonoBehaviour
                 return true;
             }
         }
+        AudioManager.Instance.PawnSelectEffect();
         return false;
     }
 }

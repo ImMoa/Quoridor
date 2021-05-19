@@ -20,9 +20,8 @@ public class IntroInputKey : MonoBehaviour
 
     void Update()
     {
-        if (Input.anyKeyDown)
+        if (Input.anyKeyDown && !Input.GetKey("escape"))
             firstCanvas.SetActive(false);
-            //onClickStart();
     }
 
     public IEnumerator FadeToFull()

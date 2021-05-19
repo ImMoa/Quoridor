@@ -1,33 +1,61 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+[RequireComponent(typeof(AudioSource))]
 public class AudioManager : MonoBehaviour
 {
-    AudioSource backmusic;
-    public static AudioManager Instance {get; set;}
+
+    public static AudioManager Instance;
+    AudioSource EffectSound;
+
+    public AudioClip gamebgm;
+    public AudioClip pawnmove;
+    public AudioClip pawnselect;
+    public AudioClip spawnwall;
+    public AudioClip endgame;
+    public AudioClip buttonselect;
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+    }
 
     void Start()
     {
-        Instance = this;
-        backmusic = GetComponent<AudioSource>();
+        EffectSound = GetComponent<AudioSource>();
+        EffectSound.PlayOneShot(gamebgm);
+        EffectSound.loop = true;
+        EffectSound.volume = 0.15f;
     }
-
-    void SelectEffect()
+  
+    public void PawnMoveEffect()
     {
-
+        EffectSound.PlayOneShot(pawnmove);
     }
-
-    void DecideEffect()
+    public void PawnSelectEffect()
     {
-
+        EffectSound.PlayOneShot(pawnselect);
     }
 
-    void PauseEffect()
+    public void SpawnWallEffect()
     {
-
+        EffectSound.PlayOneShot(spawnwall);
+    }
+    public void EndGameEffect()
+    {
+        EffectSound.Stop();
+        EffectSound.volume = 0.5f;
+        EffectSound.PlayOneShot(endgame);
     }
 
+    public void ButtonSelectEffect()
+    {
+        EffectSound.PlayOneShot(buttonselect);
+    }
 
-    
 }
+
+
