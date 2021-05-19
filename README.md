@@ -41,7 +41,7 @@ Download the latest build from [the releases page](https://github.com/ImMoa/Quor
 ![green](https://user-images.githubusercontent.com/83941587/118762450-2d14eb80-b8b1-11eb-8492-5bfcb8288f03.png)
 - If click pawn for move, create transparent green plain on the board where can move.
 
-### Support communit site (Currently down)
+### Support community site (Currently down)
 - Users can make conversation with other player and can check guide(eg. game rules) from developers.
 
 ## License
